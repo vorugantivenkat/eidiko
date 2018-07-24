@@ -1,0 +1,103 @@
+DECLARE STL NAMESPACE 'http://services.sabre.com/STL/v01';
+DECLARE ns NAMESPACE 'http://services.sabre.com/ns/Crew/FlightLeg/v_1';
+
+
+CREATE COMPUTE MODULE Crew_LM_Proceesing_File_Process
+	DECLARE BackupDirectory EXTERNAL CHARACTER;
+	DECLARE LOG4JPATH EXTERNAL CHARACTER;
+	DECLARE CREW9W EXTERNAL CHARACTER;
+	DECLARE CREWS2 EXTERNAL CHARACTER;
+
+
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		DECLARE rc BOOLEAN;
+		CALL initLog4j(LOG4JPATH) INTO rc;
+		DECLARE Message CHARACTER;
+		SET Environment.Variables.InterfaceName = 'CREW_LM_INBOUND';
+		SET Environment.Variables.loggername = 'CREW_LM_INBOUND';
+		SET Environment.Variables.FileName = InputLocalEnvironment.File.Name;
+		SET Environment.Variables.BackupDirectory = BackupDirectory;
+		SET Environment.Variables.Fail = BackupDirectory||'/'||CAST(CURRENT_DATE AS CHARACTER FORMAT 'yyyyMMdd')||'/FailureBackup';
+		SET Message = 'File download from SFTP Server of '||InputLocalEnvironment.File.Name;
+		CALL writeToLogFile(MessageFlowLabel, 'CREW_LM_INBOUND','DEBUG',Message) INTO rc;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
+		SET outRef.(XMLNSC.XmlDeclaration)*.Version = 1.0;
+		SET outRef.(XMLNSC.XmlDeclaration)*.Encoding = 'UTF-8';
+		SET outRef.(XMLNSC.XmlDeclaration)*.standalone= 'yes';
+		--CREATE LASTCHILD OF outRef1 AS outRef1 NAMESPACE ns NAME 'CrewOnFlightLegNotification';
+		SET outRef.ns:CrewOnFlightLegNotification.(XMLNSC.Attribute)version = '1';
+		SET outRef.ns:CrewOnFlightLegNotification.(XMLNSC.NamespaceDecl)xmlns = ns;
+		SET outRef.ns:CrewOnFlightLegNotification.(XMLNSC.NamespaceDecl)xmlns:STL = STL;		
+		
+
+		DECLARE outRef1,outRef2 REFERENCE TO outRef.ns:CrewOnFlightLegNotification;
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC.CrewDetails.Flight;
+		DECLARE inRef1 REFERENCE TO InputRoot.XMLNSC.CrewDetails.CrewList.Crew;
+
+		SET outRef1.ns:TransactionTimestamp = inRef.Departure_Date;
+
+		CREATE LASTCHILD OF outRef1 AS outRef1 NAMESPACE ns NAME 'FlightLeg';
+	--	DECLARE outRef2 REFERENCE TO outRef;
+		CREATE LASTCHILD OF outRef1 AS outRef2 NAMESPACE STL NAME 'FlightId';
+		SET outRef2.STL:FlightNumber = inRef.Flight_No;
+		SET outRef2.STL:Suffix = inRef.Flight_Suffix;
+		SET outRef2.STL:Carrier = inRef.Flight_Carrier;
+		SET outRef2.STL:Date = inRef.Departure_Date;
+		CREATE LASTCHILD OF outRef1 AS outRef2 NAMESPACE STL NAME 'FlightLegId';
+		SET outRef2.STL:DepartureAirport = FIELDVALUE(inRef.Departure_Airport);
+		SET outRef2.STL:DepartureDate = FIELDVALUE(inRef.Departure_Date);
+		-------------------Crew Looping------------------------
+		WHILE LASTMOVE(inRef1) DO
+			CREATE LASTCHILD OF outRef1 AS outRef2 NAMESPACE STL NAME 'CrewMember.LoadManager';
+			SET outRef2.(XMLNSC.Attribute)staffNumber = COALESCE(inRef1.Employee_No,'1111111');
+			SET outRef2.STL:Name.STL:First = inRef1.Employee_First_Name;
+			SET outRef2.STL:Name.STL:Last = inRef1.Employee_Last_Name;
+			SET outRef2.STL:Type = inRef1.Rank_Type; -----recheck
+			SET outRef2.STL:Function.(XMLNSC.Attribute)code = 'custom';
+			SET outRef2.STL:Function = 'F'; -------recheck
+			SET outRef2.STL:Gender = COALESCE(inRef1.Gender_Type,'Male');
+			MOVE inRef1 NEXTSIBLING;
+		END WHILE;
+		IF inRef.Flight_Carrier = '9W' THEN
+			
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = CREW9W;
+		
+		ELSE 
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = CREWS2;
+		END IF;
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+		SET Message = 'Message placed in queue'; ---append queue name to which queue it is going
+		CALL writeToLogFile(MessageFlowLabel, Environment.Variables.loggername,'DEBUG',Message) INTO rc;
+		
+		SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName;
+		SET OutputLocalEnvironment.Destination.File.Directory = BackupDirectory||'/'||CAST(CURRENT_DATE AS CHARACTER FORMAT 'yyyyMMdd')||'/TransformedBackup';
+		PROPAGATE TO TERMINAL 'out' DELETE NONE;
+		SET Message = 'File upload success to TransformedBackup';
+        CALL writeToLogFile(MessageFlowLabel, Environment.Variables.loggername,'DEBUG',Message) INTO rc;
+		
+		
+		SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+		SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName;
+		SET OutputLocalEnvironment.Destination.File.Directory = BackupDirectory||'/'||CAST(CURRENT_DATE AS CHARACTER FORMAT 'yyyyMMdd')||'/SuccessBackup';
+		SET Message = 'File upload success to SuccessBackup';
+        CALL writeToLogFile(MessageFlowLabel, Environment.Variables.loggername,'DEBUG',Message) INTO rc;
+	END;
+END MODULE;

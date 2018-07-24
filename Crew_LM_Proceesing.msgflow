@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmFileInput.msgnode="ComIbmFileInput.msgnode" xmlns:ComIbmFileOutput.msgnode="ComIbmFileOutput.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:Exception_Handling.subflow="Exception_Handling.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="Crew_LM_Proceesing.msgflow"
+    nsPrefix="Crew_LM_Proceesing.msgflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.BackupDirectory" name="BackupDirectory" defaultValueLiteral="C:\var\iib\LoadManager\Inbound\CREW\BACKUP">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4JPATH" name="LOG4JPATH" defaultValueLiteral="C:\var\iib\LoadManager\Config\Log4jConfigurationFile.xml">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.CREW9W" name="CREW9W" defaultValueLiteral="RQ.9W.LIDO.LOADMGR.CREW">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.CREWS2" name="CREWS2" defaultValueLiteral="RQ.S2.LIDO.LOADMGR.CREW">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <translation xmi:type="utility:TranslatableString" key="Crew_LM_Proceesing" bundleName="Crew_LM_Proceesing" pluginId="CREW_LM_INBOUND"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CREW_LM_INBOUND/icons/full/obj16/Crew_LM_Proceesing.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CREW_LM_INBOUND/icons/full/obj30/Crew_LM_Proceesing.gif"/>
+    <composition>
+      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="72,201" inputDirectory="C:\var\iib\LoadManager\Inbound\CREW\OUTBOX" processedFileAction="moveToArchive" replaceDuplicateArchives="true" messageDomainProperty="XMLNSC" waitInterval="120" fileFtp="true" remoteTransferType="SFTP" fileFtpServer="SFTPServer_151" fileFtpUser="SID_151" fileFtpDirectory="/SFTP/Load_Manager_v5.3_Crew/Load_Manager_v5.3_Crew/OUT" fileFtpTransferMode="ASCII">
+        <translation xmi:type="utility:ConstantString" string="CREW_LM_Input"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="437,197" queueName="OUTQ" destinationMode="list" validateMaster="none">
+        <translation xmi:type="utility:ConstantString" string="Sabre_Queue"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="274,196" computeExpression="esql://routine/#Crew_LM_Proceesing_File_Process.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="File_Process"/>
+      </nodes>
+      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="444,124" outputDirectory="C:\var\iib\LoadManager\Inbound\CREW\BACKUP" outputFilename="*.txt" writeMode="writeInPlace">
+        <translation xmi:type="utility:ConstantString" string="File Output"/>
+      </nodes>
+      <nodes xmi:type="Exception_Handling.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="291,49">
+        <translation xmi:type="utility:ConstantString" string="Exception_Handling"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.BackupDirectory">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.BackupDirectory" bundleName="Crew_LM_Proceesing" pluginId="CREW_LM_INBOUND"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4JPATH">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4JPATH" bundleName="Crew_LM_Proceesing" pluginId="CREW_LM_INBOUND"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.CREW9W">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.CREW9W" bundleName="Crew_LM_Proceesing" pluginId="CREW_LM_INBOUND"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.CREWS2">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.CREWS2" bundleName="Crew_LM_Proceesing" pluginId="CREW_LM_INBOUND"/>
+            </propertyDescriptor>
+          </propertyDescriptor>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>
